@@ -1,14 +1,19 @@
 // Package service provides a simple way to create a system service.
 // Currently supports Windows, Linux/(systemd | Upstart | SysV), and OSX/Launchd.
-package service
+package main
 
-import "github.com/kardianos/osext"
+import (
+	"fmt"
+	"github.com/kardianos/osext"
+	"os"
+)
 
 // Creates a new service. name is the internal name
 // and should not contain spaces. Display name is the pretty print
 // name. The description is an arbitrary string used to describe the
 // service.
 func NewService(name, displayName, description string) (Service, error) {
+	fmt.Fprintf(os.Stdout, "Beginning new service creation\n")
 	return newService(&Config{
 		Name:        name,
 		DisplayName: displayName,

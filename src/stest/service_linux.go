@@ -1,4 +1,4 @@
-package service
+package main
 
 import (
 	"fmt"
@@ -25,40 +25,51 @@ const (
 func getFlavor() (initFlavor, error) {
 	initCmd, err := ioutil.ReadFile("/proc/1/cmdline")
 	if err != nil {
-		return initSystemV, err
+		panic(err)
 	}
+	fmt.Fprintf(os.Stdout, "/proc/1/cmdline read is %q\n", initCmd)
 	init := fmt.Sprintf("%s", initCmd[:len(initCmd)-1])
+	fmt.Fprintf(os.Stdout, "/proc/1/cmdline read after Sprintf is %q\n", init)
 	if strings.Contains(init, "init [") {
+		fmt.Fprintf(os.Stdout, "getFlavor() returning sysv\n")
 		return initSystemV, nil
 	}
 	if strings.Contains(init, "systemd") {
+		fmt.Fprintf(os.Stdout, "getFlavor() returning systemd\n")
 		return initSystemd, nil
 	}
 	if strings.Contains(init, "init") {
+		fmt.Fprintf(os.Stdout, "getFlavor() appears to be upstart, checking for systemd that looks like upstart\n")
 		// not so fast! you may think this is upstart, but it may be
 		// a symlink to systemd... yeah, debian does that... ( x )
 		target, err := filepath.EvalSymlinks(init)
 		if err == nil && strings.Contains(target, "systemd") {
+			fmt.Fprintf(os.Stdout, "getFlavor() not upstart, returning systemd\n")
 			return initSystemd, nil
 		}
+		fmt.Fprintf(os.Stdout, "getFlavor() returning upstart")
 		return initUpstart, nil
 	}
 	// failed to detect init system, falling back to sysvinit
+	fmt.Fprintf(os.Stdout, "getFlavor() unable to detect, returning sysv fallback\n")
 	return initSystemV, nil
 }
 
 func newService(c *Config) (Service, error) {
 	var err error
+	fmt.Fprintf(os.Stdout, "calling getFlavor()\n")
 	flavor, err := getFlavor()
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
+	fmt.Fprintf(os.Stdout, "getFlavor(): %v\n", flavor)
 	s := &linuxService{
 		flavor:      flavor,
 		name:        c.Name,
 		displayName: c.DisplayName,
 		description: c.Description,
 	}
+	fmt.Fprintf(os.Stdout, "install path will be %v\n", flavor.ConfigPath("mig-agent"))
 	s.logger, err = syslog.New(syslog.LOG_INFO, s.name)
 	if err != nil {
 		return nil, err
